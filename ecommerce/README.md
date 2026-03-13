@@ -1,4 +1,4 @@
-# Back-end E-commerce (estudo)
+# Back-end E-commerce
 
 API REST simples em Node.js + Express + MongoDB (Mongoose), com autenticação JWT. Base preparada para desenvolvimento em grupo: cada aluno adiciona suas rotas e controllers seguindo as convenções abaixo.
 
