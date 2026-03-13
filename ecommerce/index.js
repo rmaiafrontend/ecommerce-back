@@ -2,6 +2,7 @@ const express = require("express");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const perfilRoutes = require("./routes/perfilRoutes");
+const produtoRoutes = require('./routes/produtoRoutes');
 
 const app = express();
 
@@ -15,9 +16,11 @@ app.use("/api", perfilRoutes);
 // app.use("/api", perfilRoutes);
 // app.use("/api", categoriaRoutes);
 // app.use("/api", tagRoutes);
-// app.use("/api", produtoRoutes);
+app.use('/api', produtoRoutes);
 // app.use("/api", pedidoRoutes);
 
 app.listen(3000, () => {
   console.log("Aplicação rodando na porta 3000");
 });
+
+
