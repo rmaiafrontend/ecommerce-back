@@ -1,4 +1,4 @@
-const Categoria = require("../../../ecommerce/models/Categoria");
+const Categoria = require("../models/Categoria");
 
 // LISTAR
 exports.listar = async (req, res) => {

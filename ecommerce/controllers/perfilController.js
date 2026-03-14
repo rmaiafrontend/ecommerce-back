@@ -7,10 +7,10 @@ const listarPerfil = async (req, res) => {
   try {
     const user = await Usuario.findOne({ email: req.email });
 
-    if (!usuario) {
+    if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
-    const perfil = await Perfil.findOne({ usuario: usuario._id });
+    const perfil = await Perfil.findOne({ usuario: user._id });
 
     if (!perfil) {
       return res.status(404).json({ error: "Perfil não encontrado" });
@@ -30,10 +30,10 @@ const criarPerfil = async (req, res) => {
 
     const user = await Usuario.findOne({ email: req.email });
 
-    if (!usuario) {
+    if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
-    const perfilExistente = await Perfil.findOne({ usuario: usuario._id });
+    const perfilExistente = await Perfil.findOne({ usuario: user._id });
 
     if (perfilExistente) {
       return res.status(409).json({ error: "Usuário já possui perfil" });
@@ -43,7 +43,7 @@ const criarPerfil = async (req, res) => {
       cpf,
       telefone,
       fotoUrl,
-      usuario: usuario._id
+      usuario: user._id
     });
 
     await novoPerfil.save();
@@ -63,10 +63,10 @@ const atualizarPerfil = async (req, res) => {
 
     const user = await Usuario.findOne({ email: req.email });
 
-    if (!usuario) {
+    if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
-    const perfil = await Perfil.findOne({ usuario: usuario._id });
+    const perfil = await Perfil.findOne({ usuario: user._id });
 
     if (!perfil) {
       return res.status(404).json({ error: "Perfil não encontrado" });

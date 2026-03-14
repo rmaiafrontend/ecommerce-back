@@ -25,6 +25,7 @@ exports.listarPedidos = async (req, res) => {
 exports.buscarPedidoPorId = async (req, res) => {
   try {
     const usuario = await Usuario.findOne({ email: req.email });
+    if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
     const pedido = await Pedido.findOne({ _id: req.params.id, usuario_id: usuario._id })
       .populate({
         path: "itens",
@@ -45,6 +46,9 @@ exports.criarPedido = async (req, res) => {
     if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
 
     const { itens, status } = req.body;
+    if (!itens || !Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({ erro: "Envie ao menos um item no pedido" });
+    }
     const pedido = new Pedido({
       usuario_id: usuario._id,
       status: status || "pendente",
@@ -78,6 +82,7 @@ exports.criarPedido = async (req, res) => {
 exports.atualizarStatusPedido = async (req, res) => {
   try {
     const usuario = await Usuario.findOne({ email: req.email });
+    if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
     const pedido = await Pedido.findOne({ _id: req.params.id, usuario_id: usuario._id });
 
     if (!pedido) return res.status(404).json({ erro: "Pedido não encontrado" });

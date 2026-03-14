@@ -1,0 +1,11 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente (nunca commitar)
+.env
+.env.local
+.env.*.local
+
+# Postman (exportações e dados locais)
+postman/
+.postman/

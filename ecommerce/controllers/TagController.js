@@ -1,4 +1,4 @@
-const Tag = require("../../../ecommerce/models/Tag");
+const Tag = require("../models/Tag");
 
 // LISTAR
 exports.listar = async (req, res) => {

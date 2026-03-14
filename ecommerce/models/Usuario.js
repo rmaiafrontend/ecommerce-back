@@ -7,17 +7,14 @@ const usuarioSchema = new mongoose.Schema({
   senha: { type: String, required: true }
 });
 
-usuarioSchema.pre('save', function (next) {
+usuarioSchema.pre('save', async function () {
   if (this.isNew || this.isModified('senha')) {
-    bcrypt.hash(this.senha, 10, (err, hashedPassword) => {
-      if (err) next(err);
-      else {
-        this.senha = hashedPassword;
-        next();
-      }
+    this.senha = await new Promise((resolve, reject) => {
+      bcrypt.hash(this.senha, 10, (err, hashedPassword) => {
+        if (err) reject(err);
+        else resolve(hashedPassword);
+      });
     });
-  } else {
-    next();
   }
 });
 
