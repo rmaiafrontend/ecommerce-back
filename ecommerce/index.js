@@ -21,7 +21,8 @@ app.use("/api", tagRoutes);
 // app.use("/api", categoriaRoutes);
 // app.use("/api", tagRoutes);
 app.use('/api', produtoRoutes);
-// app.use("/api", pedidoRoutes);
+
+app.use("/api", pedidoRoutes);
 
 app.listen(3000, () => {
   console.log("Aplicação rodando na porta 3000");
