@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const perfilRoutes = require("./routes/perfilRoutes");
@@ -9,6 +10,7 @@ const pedidoRoutes = require("./routes/pedidoRoutes");
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 // Rotas da API (prefixo /api)
