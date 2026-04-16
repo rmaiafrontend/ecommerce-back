@@ -1,23 +1,12 @@
-const mongoose = require('mongoose');
-require('dotenv').config();
+const mongoose = require("mongoose");
 
-const MONGO_URI = process.env.MONGO_URI;
-
-class Database {
-  constructor() {
-    this._connect();
+async function connectDB(mongoUri = process.env.MONGO_URI) {
+  if (!mongoUri) {
+    throw new Error("MONGO_URI não configurado");
   }
 
-  _connect() {
-    mongoose.connect(MONGO_URI)
-      .then(() => {
-        console.log('Database connection successful');
-      })
-      .catch(err => {
-        console.log(err)
-        console.error('Database connection error');
-      });
-  }
+  await mongoose.connect(mongoUri);
+  return mongoose.connection;
 }
 
-module.exports = new Database();
+module.exports = connectDB;

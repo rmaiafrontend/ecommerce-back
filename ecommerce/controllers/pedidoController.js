@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Pedido = require("../models/Pedido");
 const ItemPedido = require("../models/ItemPedido");
 const Usuario = require("../models/Usuario");
@@ -7,7 +8,11 @@ const Produto = require("../models/Produto");
 exports.listarPedidos = async (req, res) => {
   try {
     const usuario = await Usuario.findOne({ email: req.email });
-    if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
+    if (!usuario) {
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Usuário não encontrado" } });
+    }
 
     const pedidos = await Pedido.find({ usuario_id: usuario._id })
       .populate({
@@ -17,7 +22,9 @@ exports.listarPedidos = async (req, res) => {
 
     return res.status(200).json(pedidos);
   } catch (err) {
-    return res.status(500).json({ erro: "Erro ao listar pedidos" });
+    return res
+      .status(500)
+      .json({ error: { code: "INTERNAL", message: "Erro ao listar pedidos" } });
   }
 };
 
@@ -25,56 +32,121 @@ exports.listarPedidos = async (req, res) => {
 exports.buscarPedidoPorId = async (req, res) => {
   try {
     const usuario = await Usuario.findOne({ email: req.email });
-    if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
+    if (!usuario) {
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Usuário não encontrado" } });
+    }
     const pedido = await Pedido.findOne({ _id: req.params.id, usuario_id: usuario._id })
       .populate({
         path: "itens",
         populate: { path: "produto" }
       });
 
-    if (!pedido) return res.status(404).json({ erro: "Pedido não encontrado" });
+    if (!pedido) {
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Pedido não encontrado" } });
+    }
     return res.status(200).json(pedido);
   } catch (err) {
-    return res.status(500).json({ erro: "Erro ao buscar pedido" });
+    return res
+      .status(500)
+      .json({ error: { code: "INTERNAL", message: "Erro ao buscar pedido" } });
   }
 };
 
+const STATUS_VALIDOS = new Set(["pendente", "pago", "enviado", "cancelado"]);
+
 // Criar pedido
 exports.criarPedido = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
     const usuario = await Usuario.findOne({ email: req.email });
-    if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
+    if (!usuario) {
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Usuário não encontrado" } });
+    }
 
     const { itens, status } = req.body;
     if (!itens || !Array.isArray(itens) || itens.length === 0) {
-      return res.status(400).json({ erro: "Envie ao menos um item no pedido" });
+      return res.status(400).json({
+        error: { code: "VALIDATION", message: "Envie ao menos um item no pedido" }
+      });
     }
-    const pedido = new Pedido({
-      usuario_id: usuario._id,
-      status: status || "pendente",
-      itens: []
+
+    const statusFinal = status || "pendente";
+    if (!STATUS_VALIDOS.has(statusFinal)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION",
+          message: `status inválido. Use: ${Array.from(STATUS_VALIDOS).join(", ")}`
+        }
+      });
+    }
+
+    let pedidoId;
+    await session.withTransaction(async () => {
+      const pedido = await Pedido.create(
+        [
+          {
+            usuario_id: usuario._id,
+            status: statusFinal,
+            itens: []
+          }
+        ],
+        { session }
+      );
+
+      const pedidoDoc = pedido[0];
+      pedidoId = pedidoDoc._id;
+
+      const itensParaCriar = [];
+      for (const item of itens) {
+        const produtoId = item?.produtoId;
+        const quantidade = Number(item?.quantidade);
+
+        if (!produtoId || !Number.isFinite(quantidade) || quantidade <= 0) {
+          const err = new Error("Itens inválidos (produtoId e quantidade > 0 são obrigatórios)");
+          err.status = 400;
+          err.code = "VALIDATION";
+          throw err;
+        }
+
+        const produto = await Produto.findById(produtoId).session(session);
+        if (!produto) {
+          const err = new Error("Produto não encontrado");
+          err.status = 404;
+          err.code = "NOT_FOUND";
+          throw err;
+        }
+
+        itensParaCriar.push({
+          quantidade,
+          produto: produto._id,
+          pedido: pedidoDoc._id,
+          preco: produto.preco
+        });
+      }
+
+      const itensCriados = await ItemPedido.insertMany(itensParaCriar, { session });
+      pedidoDoc.itens = itensCriados.map((i) => i._id);
+      await pedidoDoc.save({ session });
     });
 
-    // Criar itens do pedido
-    for (const item of itens) {
-      const produto = await Produto.findById(item.produtoId);
-      if (!produto) return res.status(404).json({ erro: "Produto não encontrado" });
+    const pedidoCriado = await Pedido.findById(pedidoId)
+      .populate({ path: "itens", populate: { path: "produto" } });
 
-      const novoItem = new ItemPedido({
-        quantidade: item.quantidade,
-        produto: produto._id,
-        pedido: pedido._id,
-        preco: item.preco
-      });
-
-      await novoItem.save();
-      pedido.itens.push(novoItem._id);
-    }
-
-    await pedido.save();
-    return res.status(201).json(pedido);
+    return res.status(201).json(pedidoCriado);
   } catch (err) {
-    return res.status(500).json({ erro: "Erro ao criar pedido" });
+    const statusCode = Number(err?.status) || 500;
+    const code = err?.code || (statusCode === 500 ? "INTERNAL" : "ERROR");
+    return res
+      .status(statusCode)
+      .json({ error: { code, message: err?.message || "Erro ao criar pedido" } });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -82,16 +154,36 @@ exports.criarPedido = async (req, res) => {
 exports.atualizarStatusPedido = async (req, res) => {
   try {
     const usuario = await Usuario.findOne({ email: req.email });
-    if (!usuario) return res.status(404).json({ erro: "Usuário não encontrado" });
+    if (!usuario) {
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Usuário não encontrado" } });
+    }
     const pedido = await Pedido.findOne({ _id: req.params.id, usuario_id: usuario._id });
 
-    if (!pedido) return res.status(404).json({ erro: "Pedido não encontrado" });
+    if (!pedido) {
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Pedido não encontrado" } });
+    }
 
-    pedido.status = req.body.status;
+    const novoStatus = req.body?.status;
+    if (!STATUS_VALIDOS.has(novoStatus)) {
+      return res.status(400).json({
+        error: {
+          code: "VALIDATION",
+          message: `status inválido. Use: ${Array.from(STATUS_VALIDOS).join(", ")}`
+        }
+      });
+    }
+
+    pedido.status = novoStatus;
     await pedido.save();
 
     return res.status(200).json(pedido);
   } catch (err) {
-    return res.status(500).json({ erro: "Erro ao atualizar status" });
+    return res.status(500).json({
+      error: { code: "INTERNAL", message: "Erro ao atualizar status" }
+    });
   }
 };

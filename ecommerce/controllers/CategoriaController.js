@@ -6,7 +6,7 @@ exports.listar = async (req, res) => {
     const categorias = await Categoria.find();
     res.status(200).json(categorias);
   } catch (error) {
-    res.status(500).json({ erro: error.message });
+    res.status(500).json({ error: { code: "INTERNAL", message: error.message } });
   }
 };
 
@@ -15,12 +15,18 @@ exports.criar = async (req, res) => {
   try {
     const { nome } = req.body;
 
+    if (!nome) {
+      return res
+        .status(400)
+        .json({ error: { code: "VALIDATION", message: "nome é obrigatório" } });
+    }
+
     const categoria = new Categoria({ nome });
     await categoria.save();
 
     res.status(201).json(categoria);
   } catch (error) {
-    res.status(500).json({ erro: error.message });
+    res.status(500).json({ error: { code: "INTERNAL", message: error.message } });
   }
 };
 
@@ -36,12 +42,14 @@ exports.atualizar = async (req, res) => {
     );
 
     if (!categoria) {
-      return res.status(404).json({ erro: "Categoria não encontrada" });
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Categoria não encontrada" } });
     }
 
     res.status(200).json(categoria);
   } catch (error) {
-    res.status(500).json({ erro: error.message });
+    res.status(500).json({ error: { code: "INTERNAL", message: error.message } });
   }
 };
 
@@ -53,11 +61,13 @@ exports.deletar = async (req, res) => {
     const categoria = await Categoria.findByIdAndDelete(id);
 
     if (!categoria) {
-      return res.status(404).json({ erro: "Categoria não encontrada" });
+      return res
+        .status(404)
+        .json({ error: { code: "NOT_FOUND", message: "Categoria não encontrada" } });
     }
 
     res.status(200).json({ mensagem: "Categoria removida" });
   } catch (error) {
-    res.status(500).json({ erro: error.message });
+    res.status(500).json({ error: { code: "INTERNAL", message: error.message } });
   }
 };

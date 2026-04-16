@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const jwt = require('jsonwebtoken');
 
 const secret = process.env.JWT_SECRET;
@@ -7,10 +5,18 @@ const secret = process.env.JWT_SECRET;
 const WithAuth = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
 
-  if (!token) return res.status(401).json({ error: 'Sem token, acesso negado' });
+  if (!token) {
+    return res.status(401).json({
+      error: { code: "UNAUTHORIZED", message: "Sem token, acesso negado" }
+    });
+  }
 
   jwt.verify(token, secret, (err, decoded) => {
-    if (err) return res.status(401).json({ error: 'Token inválido' });
+    if (err) {
+      return res
+        .status(401)
+        .json({ error: { code: "UNAUTHORIZED", message: "Token inválido" } });
+    }
 
     req.email = decoded.email;
 
