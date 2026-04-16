@@ -15,7 +15,18 @@ const listarPerfil = async (req, res) => {
     if (!perfil) {
       return res.status(404).json({ error: "Perfil não encontrado" });
     }
-    res.status(200).json(perfil);
+
+    const { _id, cpf, telefone, fotoUrl, createdAt, updatedAt } = perfil.toObject();
+    res.status(200).json({
+      _id,
+      nome: perfil.usuario?.nome,
+      email: perfil.usuario?.email,
+      cpf,
+      telefone,
+      fotoUrl,
+      createdAt,
+      updatedAt
+    });
 
   } catch (error) {
     console.error("[listarPerfil]", error);
