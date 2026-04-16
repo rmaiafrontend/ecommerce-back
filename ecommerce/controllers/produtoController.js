@@ -12,9 +12,12 @@ exports.listarProdutos = async (req, res) => {
     const limit = Math.min(parsePositiveInt(req.query.limit, 20), 100);
     const skip = (page - 1) * limit;
 
+    const filter = {};
+    if (req.query.categoria) filter.categoria_id = req.query.categoria;
+
     const [produtos, total] = await Promise.all([
-      Produto.find().populate("categoria_id").skip(skip).limit(limit),
-      Produto.countDocuments()
+      Produto.find(filter).populate("categoria_id").skip(skip).limit(limit),
+      Produto.countDocuments(filter)
     ]);
 
     const produtoIds = produtos.map((p) => p._id);
@@ -66,13 +69,13 @@ exports.obterProduto = async (req, res) => {
 
 exports.criarProduto = async (req, res) => {
   try {
-    const { nome, preco, categoria_id, tagIds } = req.body;
+    const { nome, preco, urlImagem, categoria_id, tagIds } = req.body;
     if (!nome || preco === undefined) {
       return res.status(400).json({
         error: { code: "VALIDATION", message: "nome e preco são obrigatórios" }
       });
     }
-    const produto = new Produto({ nome, preco, categoria_id });
+    const produto = new Produto({ nome, preco, urlImagem, categoria_id });
     await produto.save();
 
     if (tagIds && Array.isArray(tagIds) && tagIds.length > 0) {
@@ -100,9 +103,10 @@ exports.atualizarProduto = async (req, res) => {
         .json({ error: { code: "NOT_FOUND", message: "Produto não encontrado" } });
     }
 
-    const { nome, preco, categoria_id, tagIds } = req.body;
+    const { nome, preco, urlImagem, categoria_id, tagIds } = req.body;
     if (nome !== undefined) produto.nome = nome;
     if (preco !== undefined) produto.preco = preco;
+    if (urlImagem !== undefined) produto.urlImagem = urlImagem;
     if (categoria_id !== undefined) produto.categoria_id = categoria_id;
     await produto.save();
 

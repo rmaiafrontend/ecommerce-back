@@ -10,7 +10,7 @@ const listarPerfil = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
-    const perfil = await Perfil.findOne({ usuario: user._id });
+    const perfil = await Perfil.findOne({ usuario: user._id }).populate("usuario", "nome email");
 
     if (!perfil) {
       return res.status(404).json({ error: "Perfil não encontrado" });
@@ -18,6 +18,7 @@ const listarPerfil = async (req, res) => {
     res.status(200).json(perfil);
 
   } catch (error) {
+    console.error("[listarPerfil]", error);
     res.status(500).json({ error: "Erro interno" });
   }
 };
@@ -50,6 +51,7 @@ const criarPerfil = async (req, res) => {
     res.status(201).json(novoPerfil);
 
   } catch (error) {
+    console.error("[criarPerfil]", error);
     res.status(500).json({ error: "Erro interno" });
   }
 };
@@ -80,6 +82,7 @@ const atualizarPerfil = async (req, res) => {
     res.status(200).json(perfil);
 
   } catch (error) {
+    console.error("[atualizarPerfil]", error);
     res.status(500).json({ error: "Erro interno" });
   }
 };
